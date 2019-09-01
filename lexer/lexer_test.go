@@ -6,6 +6,43 @@ import (
 	"github.com/naronA/monkey/mtoken"
 )
 
+func TestNextToken4(t *testing.T) {
+	input := `
+10 == 10;
+10 != 9;
+`
+	tests := []struct {
+		expectedType    mtoken.TokenType
+		expectedLiteral string
+	}{
+		{mtoken.INT, "10"},
+		{mtoken.EQ, "=="},
+		{mtoken.INT, "10"},
+		{mtoken.SEMICOLON, ";"},
+
+		{mtoken.INT, "10"},
+		{mtoken.NOTEQ, "!="},
+		{mtoken.INT, "9"},
+		{mtoken.SEMICOLON, ";"},
+		{mtoken.EOF, ""},
+	}
+	l := New(input)
+
+	for i, tt := range tests {
+		tok := l.NextToken()
+
+		if tok.Type != tt.expectedType {
+			t.Fatalf("tests[%d] - tokentype wrong. expected=%q, got=%q",
+				i, tt.expectedType, tok.Type)
+		}
+
+		if tok.Literal != tt.expectedLiteral {
+			t.Fatalf("tests[%d] - literal wrong. expected=%q, got=%q",
+				i, tt.expectedLiteral, tok.Literal)
+		}
+	}
+}
+
 func TestNextToken3(t *testing.T) {
 	input := `let five = 5;
 let ten = 10;
@@ -16,6 +53,12 @@ let add = fn(x, y) {
 let result = add(five, ten);
 !-/*5;
 5 < 10 > 5;
+
+if ( 5 < 10 ) {
+	return true;
+} else {
+	return false;
+}
 `
 	tests := []struct {
 		expectedType    mtoken.TokenType
@@ -77,6 +120,29 @@ let result = add(five, ten);
 		{mtoken.GT, ">"},
 		{mtoken.INT, "5"},
 		{mtoken.SEMICOLON, ";"},
+
+		// if ( 5 < 10 ) {
+		// 	return true;
+		// } else {
+		// 	return false;
+		// }
+		{mtoken.IF, "if"},
+		{mtoken.LPAREN, "("},
+		{mtoken.INT, "5"},
+		{mtoken.LT, "<"},
+		{mtoken.INT, "10"},
+		{mtoken.RPAREN, ")"},
+		{mtoken.LBRACE, "{"},
+		{mtoken.RETURN, "return"},
+		{mtoken.TRUE, "true"},
+		{mtoken.SEMICOLON, ";"},
+		{mtoken.RBRACE, "}"},
+		{mtoken.ELSE, "else"},
+		{mtoken.LBRACE, "{"},
+		{mtoken.RETURN, "return"},
+		{mtoken.FALSE, "false"},
+		{mtoken.SEMICOLON, ";"},
+		{mtoken.RBRACE, "}"},
 
 		{mtoken.EOF, ""},
 	}
