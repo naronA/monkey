@@ -43,6 +43,7 @@ func New(l *lexer.Lexer) *Parser {
 	// 2つのトークンを読み込む. curTokenとpeekTokenの両方がセットされる
 	p.nextToken()
 	p.nextToken()
+
 	return p
 }
 
@@ -89,8 +90,10 @@ func (p *Parser) ParseProgram() *ast.Program {
 		if stmt != nil {
 			program.Statements = append(program.Statements, stmt)
 		}
+
 		p.nextToken()
 	}
+
 	return program
 }
 
@@ -108,6 +111,7 @@ func (p *Parser) parseStatement() ast.Statement {
 
 func (p *Parser) parseLetStatement() *ast.LetStatement {
 	stmt := &ast.LetStatement{Token: p.curToken}
+
 	if !p.expectPeek(mtoken.IDENT) {
 		return nil
 	}
@@ -121,10 +125,11 @@ func (p *Parser) parseLetStatement() *ast.LetStatement {
 		return nil
 	}
 
-	// TODO: セミコロンに遭遇するまで式を読み飛ばしてしまっている
+	// セミコロンに遭遇するまで式を読み飛ばしてしまっている
 	for !p.curTokenIs(mtoken.SEMICOLON) {
 		p.nextToken()
 	}
+
 	return stmt
 }
 
@@ -141,7 +146,9 @@ func (p *Parser) expectPeek(t mtoken.TokenType) bool {
 		p.nextToken()
 		return true
 	}
+
 	p.peekError(t)
+
 	return false
 }
 
@@ -150,9 +157,10 @@ func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 	stmt := &ast.ReturnStatement{
 		Token: p.curToken,
 	}
+
 	p.nextToken()
 
-	// TODO: セミコロンに遭遇するまで指揮を読み飛ばしている
+	// セミコロンに遭遇するまで指揮を読み飛ばしている
 	for !p.curTokenIs(mtoken.SEMICOLON) {
 		p.nextToken()
 	}
@@ -175,6 +183,7 @@ func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 	if p.peekTokenIs(mtoken.SEMICOLON) {
 		p.nextToken()
 	}
+
 	return stmt
 }
 
@@ -183,7 +192,9 @@ func (p *Parser) parseExpression(_ int) ast.Expression {
 	if prefix == nil {
 		return nil
 	}
+
 	leftExp := prefix()
+
 	return leftExp
 }
 
@@ -194,9 +205,12 @@ func (p *Parser) parseIntegerLiteral() ast.Expression {
 	if err != nil {
 		msg := fmt.Sprintf("could not parse %q as integer", p.curToken.Literal)
 		p.errors = append(p.errors, msg)
+
 		return nil
 	}
+
 	lit.Value = value
+
 	return lit
 }
 

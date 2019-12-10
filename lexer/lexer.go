@@ -14,6 +14,7 @@ type Lexer struct {
 func New(input string) *Lexer {
 	l := &Lexer{input: input}
 	l.readChar()
+
 	return l
 }
 
@@ -23,12 +24,15 @@ func (l *Lexer) readChar() {
 	} else {
 		l.ch = l.input[l.readPosition]
 	}
+
 	l.position = l.readPosition
 	l.readPosition++
 }
 
 func (l *Lexer) NextToken() mtoken.Token {
+
 	var tok mtoken.Token
+
 	l.skipWhitespace()
 
 	switch l.ch {
@@ -67,24 +71,30 @@ func (l *Lexer) NextToken() mtoken.Token {
 		if isLetter(l.ch) {
 			tok.Literal = l.readIdentifier()
 			tok.Type = mtoken.LookupIdent(tok.Literal)
+
 			return tok
 		} else if isDigit(l.ch) {
 			tok.Type = mtoken.INT
 			tok.Literal = l.readNumber()
+
 			return tok
 		}
+
 		tok = newToken(mtoken.ILLEGAL, l.ch)
 	}
 
 	l.readChar()
+
 	return tok
 }
 
 func (l *Lexer) readNumber() string {
 	position := l.position
+
 	for isDigit(l.ch) {
 		l.readChar()
 	}
+
 	return l.input[position:l.position]
 }
 
@@ -104,9 +114,11 @@ func newToken(mtokenType mtoken.TokenType, ch byte) mtoken.Token {
 
 func (l *Lexer) readIdentifier() string {
 	position := l.position
+
 	for isLetter(l.ch) {
 		l.readChar()
 	}
+
 	return l.input[position:l.position]
 }
 
@@ -118,5 +130,6 @@ func (l *Lexer) peekChar() byte {
 	if l.readPosition > len(l.input) {
 		return 0
 	}
+
 	return l.input[l.readPosition]
 }
