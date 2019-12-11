@@ -125,7 +125,7 @@ func (p *Parser) parseLetStatement() *ast.LetStatement {
 		return nil
 	}
 
-	// セミコロンに遭遇するまで式を読み飛ばしてしまっている
+	// セミコロンに遭遇するまで式を読み飛ばしてしまっている.
 	for !p.curTokenIs(mtoken.SEMICOLON) {
 		p.nextToken()
 	}
