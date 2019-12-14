@@ -9,6 +9,17 @@ import (
 	"github.com/naronA/monkey/mtoken"
 )
 
+var precedenses = map[mtoken.TokenType]int{
+	mtoken.EQ:       EQUALS,
+	mtoken.NOTEQ:    EQUALS,
+	mtoken.LT:       LESSGREATER,
+	mtoken.GT:       LESSGREATER,
+	mtoken.PLUS:     SUM,
+	mtoken.MINUS:    SUM,
+	mtoken.SLASH:    PRODUCT,
+	mtoken.ASTERISK: PRODUCT,
+}
+
 const (
 	_ int = iota
 	LOWEST
@@ -39,12 +50,27 @@ func New(l *lexer.Lexer) *Parser {
 	p.prefixParseFns = make(map[mtoken.TokenType]prefixParseFn)
 	p.registerPrefix(mtoken.IDENT, p.parseIdentifier)
 	p.registerPrefix(mtoken.INT, p.parseIntegerLiteral)
+	p.registerPrefix(mtoken.BANNG, p.parsePrefixExpression)
+	p.registerPrefix(mtoken.MINUS, p.parsePrefixExpression)
 
 	// 2つのトークンを読み込む. curTokenとpeekTokenの両方がセットされる
 	p.nextToken()
 	p.nextToken()
 
 	return p
+}
+
+func (p *Parser) parsePrefixExpression() ast.Expression {
+	expression := &ast.PrefixExpression{
+		Token:    p.curToken,
+		Operator: p.curToken.Literal,
+	}
+
+	p.nextToken()
+
+	expression.Right = p.parseExpression(PREFIX)
+
+	return expression
 }
 
 /*
@@ -190,6 +216,7 @@ func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 func (p *Parser) parseExpression(_ int) ast.Expression {
 	prefix := p.prefixParseFns[p.curToken.Type]
 	if prefix == nil {
+		p.noPrefixParseFnError(p.curToken.Type)
 		return nil
 	}
 
@@ -218,3 +245,22 @@ type (
 	prefixParseFn func() ast.Expression
 	infixParseFn  func(ast.Expression) ast.Expression
 )
+
+func (p *Parser) noPrefixParseFnError(t mtoken.TokenType) {
+	msg := fmt.Sprintf("no prefix parse function for %s found", t)
+	p.errors = append(p.errors, msg)
+}
+
+func (p *Parser) peekPrecendece() int {
+	if p, ok := precedenses[p.peekToken.Type]; ok {
+		return p
+	}
+	return LOWEST
+}
+
+func (p *Parser) curPrecendece() int {
+	if p, ok := precedenses[p.curToken.Type]; ok {
+		return p
+	}
+	return LOWEST
+}
