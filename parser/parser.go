@@ -53,6 +53,16 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(mtoken.BANNG, p.parsePrefixExpression)
 	p.registerPrefix(mtoken.MINUS, p.parsePrefixExpression)
 
+	p.infixParseFns = make(map[mtoken.TokenType]infixParseFn)
+	p.registerInfix(mtoken.PLUS, p.parseInfixExpression)
+	p.registerInfix(mtoken.MINUS, p.parseInfixExpression)
+	p.registerInfix(mtoken.SLASH, p.parseInfixExpression)
+	p.registerInfix(mtoken.ASTERISK, p.parseInfixExpression)
+	p.registerInfix(mtoken.EQ, p.parseInfixExpression)
+	p.registerInfix(mtoken.NOTEQ, p.parseInfixExpression)
+	p.registerInfix(mtoken.LT, p.parseInfixExpression)
+	p.registerInfix(mtoken.GT, p.parseInfixExpression)
+
 	// 2つのトークンを読み込む. curTokenとpeekTokenの両方がセットされる
 	p.nextToken()
 	p.nextToken()
@@ -60,6 +70,19 @@ func New(l *lexer.Lexer) *Parser {
 	return p
 }
 
+func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
+	expression := &ast.InfixExpression{
+		Token:    p.curToken,
+		Operator: p.curToken.Literal,
+		Left:     left,
+	}
+
+	precedence := p.curPrecendece()
+	p.nextToken()
+	expression.Right = p.parseExpression(precedence)
+
+	return expression
+}
 func (p *Parser) parsePrefixExpression() ast.Expression {
 	expression := &ast.PrefixExpression{
 		Token:    p.curToken,
@@ -222,6 +245,17 @@ func (p *Parser) parseExpression(_ int) ast.Expression {
 
 	leftExp := prefix()
 
+	for !p.peekTokenIs(mtoken.SEMICOLON) {
+		infix := p.infixParseFns[p.peekToken.Type]
+		if infix == nil {
+			return leftExp
+		}
+
+		p.nextToken()
+
+		leftExp = infix(leftExp)
+	}
+
 	return leftExp
 }
 
@@ -255,6 +289,7 @@ func (p *Parser) peekPrecendece() int {
 	if p, ok := precedenses[p.peekToken.Type]; ok {
 		return p
 	}
+
 	return LOWEST
 }
 
@@ -262,5 +297,6 @@ func (p *Parser) curPrecendece() int {
 	if p, ok := precedenses[p.curToken.Type]; ok {
 		return p
 	}
+
 	return LOWEST
 }
