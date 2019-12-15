@@ -83,6 +83,7 @@ func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
 
 	return expression
 }
+
 func (p *Parser) parsePrefixExpression() ast.Expression {
 	expression := &ast.PrefixExpression{
 		Token:    p.curToken,
@@ -236,7 +237,7 @@ func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 	return stmt
 }
 
-func (p *Parser) parseExpression(_ int) ast.Expression {
+func (p *Parser) parseExpression(precedence int) ast.Expression {
 	prefix := p.prefixParseFns[p.curToken.Type]
 	if prefix == nil {
 		p.noPrefixParseFnError(p.curToken.Type)
@@ -245,7 +246,7 @@ func (p *Parser) parseExpression(_ int) ast.Expression {
 
 	leftExp := prefix()
 
-	for !p.peekTokenIs(mtoken.SEMICOLON) {
+	for !p.peekTokenIs(mtoken.SEMICOLON) && precedence < p.peekPrecendece() {
 		infix := p.infixParseFns[p.peekToken.Type]
 		if infix == nil {
 			return leftExp
