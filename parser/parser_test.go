@@ -7,6 +7,20 @@ import (
 	"github.com/naronA/monkey/lexer"
 )
 
+func testBooleanLiteral(t *testing.T, il ast.Expression, value bool) bool {
+	integ, ok := il.(*ast.Boolean)
+	if !ok {
+		t.Errorf("il not *ast.Boolean. got=%T", il)
+		return false
+	}
+
+	if integ.Value != value {
+		t.Errorf("Boolean value not %t. got=%t", value, integ.Value)
+		return false
+	}
+	return false
+}
+
 func testIntegerLiteral(t *testing.T, il ast.Expression, value int64) bool {
 	integ, ok := il.(*ast.IntegerLiteral)
 	if !ok {
@@ -70,6 +84,16 @@ func TestOperatorPrecedencParsing(t *testing.T) {
 			"3 + 4 * 5 == 3 * 1 + 4 * 5",
 			"((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))",
 		},
+		{"true", "true"},
+		{"false", "false"},
+		{
+			"3 > 5 == false",
+			"((3 > 5) == false)",
+		},
+		{
+			"3 < 5 == true",
+			"((3 < 5) == true)",
+		},
 	}
 
 	for _, tt := range tests {
@@ -87,12 +111,14 @@ func TestOperatorPrecedencParsing(t *testing.T) {
 
 func TestParsingPrefixExpressions(t *testing.T) {
 	prefixTests := []struct {
-		input        string
-		operator     string
-		integerValue int64
+		input    string
+		operator string
+		value    interface{}
 	}{
 		{"!5;", "!", 5},
 		{"-15;", "-", 15},
+		{"!true;", "!", true},
+		{"!false", "!", false},
 	}
 
 	for _, tt := range prefixTests {
@@ -115,8 +141,15 @@ func TestParsingPrefixExpressions(t *testing.T) {
 		if exp.Operator != tt.operator {
 			t.Fatalf("exp.Operator is not '%s'. got=%s", tt.operator, exp.Operator)
 		}
-		if !testIntegerLiteral(t, exp.Right, tt.integerValue) {
-			return
+		switch v := tt.value.(type) {
+		case int64:
+			if !testIntegerLiteral(t, exp.Right, v) {
+				return
+			}
+		case bool:
+			if !testBooleanLiteral(t, exp.Right, v) {
+				return
+			}
 		}
 	}
 }
@@ -230,6 +263,56 @@ return 993322;
 				returnStmt.TokenLiteral(),
 			)
 		}
+	}
+}
+
+func TestBooleanExpression(t *testing.T) {
+	input := "true;"
+
+	l := lexer.New(input)
+	p := New(l)
+
+	// 入力foobar;を構文解析し、エラーがないか構文解析器を確認し、
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	// *ast.Programノードに含まれる文の数に関してアサーションを設け
+	if len(program.Statements) != 1 {
+		t.Fatalf(
+			"program has not enough statements. got=%d",
+			len(program.Statements),
+		)
+	}
+
+	// program.Statementsに含まれる唯一の文が*ast.ExpressionStatementであることを確認する。
+	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf(
+			"program.Statements[0] is not ast.ExpressionStatement. got=%T",
+			program.Statements[0],
+		)
+	}
+
+	// それから*ast.ExpressionStatement.Expressionが、*ast.Identifierであることを確認する。
+	ident, ok := stmt.Expression.(*ast.Boolean)
+	if !ok {
+		t.Fatalf("exp not *ast.Boolean. got=%T", stmt.Expression)
+	}
+
+	if ident.Value != true {
+		t.Errorf(
+			"ident.Value not %s. got=%t",
+			"true",
+			ident.Value,
+		)
+	}
+
+	if ident.TokenLiteral() != "true" {
+		t.Errorf(
+			"ident.TokenLiteral not %s. got=%s",
+			"true",
+			ident.TokenLiteral(),
+		)
 	}
 }
 
