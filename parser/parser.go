@@ -100,6 +100,7 @@ func (p *Parser) parseIfExpression() ast.Expression {
 		if !p.expectPeek(mtoken.LBRACE) {
 			return nil
 		}
+
 		expression.Alternative = p.parseBlockStatement()
 	}
 
